@@ -1,0 +1,16 @@
+PART Part: 4 sub-parts, 502255 mm3, 4 solid(s), bbox 350.00 x 250.00 x 30.00
+sum of sub-part volumes 502255 vs Part 502255 (delta +0.00%)
+union of the sub-parts: 501428 mm3 (sum 502255, interference 827 mm3)
+  Body     180.00 x 140.00 x 30.00  vol 103507  solids 1  | 1× ⌀4.2 × 7.6 DEEP; 1× ⌀6.32 THRU | R1,2,5,25
+  Body002  185.00 x 125.00 x 30.00  vol 154132  solids 1  | 1× ⌀4.2 × 7.6 DEEP; 1× ⌀6.32 THRU | R2,5,25
+  Body001  175.00 x 140.00 x 30.00  vol 93494  solids 1  | 1× ⌀4.2 × 7.6 DEEP; 1× ⌀6.32 THRU; 2× ⌀16 HALF-ROUND | R2,5,25
+  Body003  175.00 x 125.00 x 30.00  vol 151122  solids 1  | 1× ⌀4.2 × 7.6 DEEP; 1× ⌀6.32 THRU | R5,25
+master view frame checks:
+  TOP   h=350.00 (X)  w=250.00 (Y)  OK
+  FRONT h=350.00 (X)  w=30.00 (Z)  OK
+  SIDE  h=250.00 (Y)  w=30.00 (Z)  OK
+pictorial scale 1:2.0, 201.8 x 109.2 mm
+layout problems: NONE
+draw items 1718, texts 107
+SVG /home/danny/Projects/hri-project/cad/drawings/sheets/Top_Bracket-A2.svg (609522 bytes, 24627 line segs)
+DXF 1919058 bytes

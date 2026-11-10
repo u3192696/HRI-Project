@@ -1,0 +1,66 @@
+[Unit]
+Description=Greeter — plays the introduction when someone settles in front of the robot
+Documentation=file:/home/jetson/robot/voice/README.md
+
+# Watches /run/face/gaze-status.json and, once a face has held for a while, plays
+# a clip through lip-sync. Nothing here touches the network or the camera.
+#
+# Deliberately NOT ordered against gaze.service or face-kiosk.service. This unit
+# reads a FILE, not the camera, so it degrades correctly on its own: with gaze
+# down it simply never sees a face and never greets, and with the kiosk down it
+# still speaks but with no mouth to move. Coupling them would only let one
+# unrelated failure take the other down — the failure mode that once left the
+# whole robot dead because the kiosk's executable bit was missing.
+
+# /run/face is created by /etc/tmpfiles.d/robot-face.conf (systemd-tmpfiles), NOT
+# by RuntimeDirectory: two units declaring one path means systemd deletes the
+# directory when EITHER stops, and `jetson` cannot recreate it under root-owned
+# /run. This unit writes the single-player lock into that directory, so it needs
+# the directory to exist.
+After=systemd-tmpfiles-setup.service
+Wants=systemd-tmpfiles-setup.service
+
+# Audio needs the user's runtime dir. Audio here is PipeWire running in jetson's
+# session, with its socket at /run/user/1000/pulse/native. At a cold boot nothing
+# has logged in, so logind has not created /run/user/1000 yet; this unit is what
+# makes it appear. Same dependency kiosk-start.sh documents for weston, and the
+# same reason it is needed even though lingering is enabled.
+After=user-runtime-dir@1000.service
+Wants=user-runtime-dir@1000.service
+
+# StartLimit* belong in [Unit]; systemd SILENTLY IGNORES them in [Service]
+# ("Unknown key name ... ignoring"). Interval 0 disables rate limiting: this is a
+# bench prototype, so a permanent fault should keep retrying rather than leave an
+# unattended robot silently unable to greet anyone.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=jetson
+Group=jetson
+WorkingDirectory=/home/jetson/robot/voice
+
+# A system service gets no XDG_RUNTIME_DIR from logind, and without it paplay
+# cannot find the PipeWire socket at all — it fails looking like "no audio
+# hardware" rather than "no session".
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+
+# The thresholds live here rather than in a config file so the policy the robot
+# is actually running is visible in `systemctl cat` next to everything else.
+#   --presence 10   a face must hold 10s of DETECTED time before it greets
+#   --absence  20   then 20s of no face before it will greet anyone again
+#   --dropout  1.5  a gap this short does not restart the 10s (12fps SCRFD
+#                   misses the odd frame; a strict count would never fire)
+ExecStart=/usr/bin/python3 /home/jetson/robot/voice/greeter.py \
+    --clip clips/rung1-cartoon-intro.wav \
+    --presence 10 --absence 20 --dropout 1.5
+
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

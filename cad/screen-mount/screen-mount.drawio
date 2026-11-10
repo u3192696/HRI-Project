@@ -1,0 +1,89 @@
+<mxfile host="drawio.coyote21.com">
+  <diagram name="Page-1" id="8T1wWA43TeXFHLElHcP-">
+    <mxGraphModel dx="1068" dy="1069" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="nSMaevePw9egd586Nvzd-71" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=light-dark(#00CC00,#00CC00);" value="" vertex="1">
+          <mxGeometry height="7" width="285" x="400" y="351" as="geometry" />
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-70" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=light-dark(#00CC00,#00CC00);" value="" vertex="1">
+          <mxGeometry height="7" width="281" x="404" y="113" as="geometry" />
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-53" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=light-dark(#FFFFFF,#F9FFF7);fillStyle=cross-hatch;" value="" vertex="1">
+          <mxGeometry height="250" width="250" x="120" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-52" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="" vertex="1">
+          <mxGeometry height="220" width="220" x="135" y="125" as="geometry" />
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-54" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" value="" vertex="1">
+          <mxGeometry height="7" width="7" x="358" y="113" as="geometry" />
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-55" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" value="" vertex="1">
+          <mxGeometry height="7" width="7" x="125" y="113" as="geometry" />
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-56" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" value="" vertex="1">
+          <mxGeometry height="7" width="7" x="358" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-57" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" value="" vertex="1">
+          <mxGeometry height="7" width="7" x="125" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-58" parent="1" style="verticalLabelPosition=middle;dashed=0;shadow=0;html=1;shape=mxgraph.cabinets.dimension;verticalAlign=top;align=center;" value="220mm" vertex="1">
+          <mxGeometry height="40" width="220" x="135" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-59" parent="1" style="verticalLabelPosition=middle;dashed=0;shadow=0;html=1;shape=mxgraph.cabinets.dimensionBottom;verticalAlign=bottom;align=center;" value="250mm" vertex="1">
+          <mxGeometry height="40" width="250" x="120" y="395" as="geometry" />
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-61" parent="1" style="whiteSpace=wrap;html=1;shape=partialRectangle;top=0;left=0;bottom=1;right=0;points=[[0,1],[1,1]];fillColor=none;align=center;verticalAlign=bottom;routingCenterY=0.5;snapToPoint=1;recursiveResize=0;autosize=1;treeFolding=1;treeMoving=1;newEdgeStyle={&quot;edgeStyle&quot;:&quot;entityRelationEdgeStyle&quot;,&quot;startArrow&quot;:&quot;none&quot;,&quot;endArrow&quot;:&quot;none&quot;,&quot;segment&quot;:10,&quot;curved&quot;:1,&quot;sourcePerimeterSpacing&quot;:0,&quot;targetPerimeterSpacing&quot;:0};" value="6.8mm dia" vertex="1">
+          <mxGeometry height="30" width="80" x="175" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-62" edge="1" parent="1" source="nSMaevePw9egd586Nvzd-55" style="edgeStyle=entityRelationEdgeStyle;startArrow=none;endArrow=none;segment=10;curved=1;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" target="nSMaevePw9egd586Nvzd-61" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="135" y="90" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-63" parent="1" style="verticalLabelPosition=middle;dashed=0;shadow=0;html=1;shape=mxgraph.cabinets.dimensionBottom;verticalAlign=bottom;align=center;" value="233mm" vertex="1">
+          <mxGeometry height="40" width="233" x="128.5" y="366" as="geometry" />
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-67" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillStyle=cross-hatch;fillColor=light-dark(#FFFFFF,#F9FFF7);" value="" vertex="1">
+          <mxGeometry height="250" width="10" x="675" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-73" edge="1" parent="1" style="endArrow=none;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="685" y="410" as="sourcePoint" />
+            <mxPoint x="685" y="376" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-74" edge="1" parent="1" style="endArrow=none;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="675" y="410" as="sourcePoint" />
+            <mxPoint x="675" y="376" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-75" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="650" y="400" as="sourcePoint" />
+            <mxPoint x="674.5" y="400" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-76" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="760" y="400" as="sourcePoint" />
+            <mxPoint x="685.5" y="400" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-77" connectable="0" parent="nSMaevePw9egd586Nvzd-76" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="10mm" vertex="1">
+          <mxGeometry relative="1" x="-0.1817" as="geometry">
+            <mxPoint y="-8" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-78" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;" value="" vertex="1">
+          <mxGeometry height="226" width="3" x="678.5" y="122" as="geometry" />
+        </mxCell>
+        <mxCell id="nSMaevePw9egd586Nvzd-80" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=none;dashed=1;" value="" vertex="1">
+          <mxGeometry height="224" width="224" x="133" y="123" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

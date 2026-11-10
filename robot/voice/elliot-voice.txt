@@ -1,0 +1,127 @@
+# Elliot's voice: the recipe the rung 4 lines are rendered from
+
+Elliot is **E2**: a fresh render of a description that states the sex, then cloned for
+every line. No shift was used to place him, and that is a deliberate reversal of the
+method used for Owen — see §2.
+
+## 1. The description
+
+> A warm, natural man's voice in his mid-thirties, recorded close to the microphone in a
+> quiet room. Speaking easily and unhurriedly to one person nearby, with a faint smile
+> in the delivery, natural breath and small pauses. Clearly a real person, not a
+> presenter.
+
+Seed 42, cfg-scale 4, model Breeze TTS 2, in `~/Projects/breeze-tts`, rendered from
+`robot/voice/intro_v2.txt` (the ladder's own script, so the measurement is comparable
+with the other rungs).
+
+Measured: **114.4 Hz, 8.4 st, ladder position 0.89.** The register is what rung 4 needs;
+the 8.4 st is livelier than the ladder's own rung 4 (6.4 st), which is why Danny picked
+it under a face that is smiling. Chosen by ear for character — "sounds the best, and to
+my ear matches the face really well too" — with the measurement confirming it is in
+band, not choosing it.
+
+## 2. Why the description states the sex, and no candidate was shifted into place
+
+**None of the ladder's four descriptions names a sex.** Rung 4's own is *"A natural
+human voice, recorded close to the microphone in a quiet room. Conversational, warm,
+calm and unhurried."* — no "man" anywhere — so the ladder's rung 4 male-ness, such as it
+is, is luck of the draw.
+
+That matters because of what happened to Milo: moving his render down 2.5 st produced
+"a more deep throaty female voice instead of a deeper male voice", because `asetrate`
+scales every frequency by one factor and the formant spacing that carries perceived sex
+survives the transform. A shift makes the same speaker *bigger*; it cannot make them a
+man. For rung 4 the same trick would have been worse than useless — a shifted render of
+Milo's voice is **Milo, bigger**, and a fourth rung that sounds like a deeper Milo is
+not a fourth person.
+
+So the candidate that was chosen states the sex in its description, and the only
+correction applied afterwards is a trim (1.4 st on the intro, see §3), never a placement.
+
+Two candidates were rejected and both are worth remembering:
+
+- **E3** scored *higher* on the ladder's composite (0.99 against E2's 0.89) while sitting
+  at 158.5 Hz, level with Milo. "Quiet, reserved" produced a 3.5 st delivery and flatness
+  scores as naturalness. The composite is half melodic range, so it cannot pick a voice
+  on its own: read the register first.
+- **E1**, the ladder's own rung 4 (114.0 Hz, 6.4 st, 1.00), was a legitimate candidate and
+  lost on character, not on measurement.
+
+## 3. The three clips, all landed 5 November
+
+| clip | script | length | median F0 | correction |
+|---|---|---|---|---|
+| `clips/rung4-natural-human-intro.wav` | `stage4_intro.txt` | 31.7 s | 114.4 Hz | **+1.37 st** — the clone came out at 105.7 |
+| `clips/rung4-natural-human-pass.wav` | `stage4_pass.txt` | 15.2 s | 114.2 Hz | none |
+| `clips/rung4-natural-human-retry.wav` | `stage4_retry.txt` | 5.6 s | 113.3 Hz | none |
+
+The anchor is **E2's own 114.4 Hz**. The intro was cloned from a 9.18 s cut of the E2
+render and came out 1.4 st low, which was trimmed; the other two were cloned from a cut
+of the *trimmed* intro that contains the name "Elliot", and both landed within 0.2 st
+with no correction at all. That is the reason to clone from the corrected anchor rather
+than from the original render — the same lesson Owen's pair taught from the other
+direction.
+
+## 4. The pass line is not only a line: it closes the run
+
+`stage4_pass.txt` says the training is complete, that there are no more stages, and that
+the phrase to finish on is the same one that started each session:
+
+> That's it - you've completed the training. There are no more stages, and nothing else
+> left to get through. Thank you for practising with me. This screen shows how you went.
+> When you're ready, just say "Let's begin" one more time, and we'll finish here.
+
+**The phrases are load-bearing.** `session.py` ends a run on its trigger phrase, so a
+closing line that did not teach the phrase would leave the robot parked on the stats
+screen until an operator said `standby`. It is the same reason stage 1's introduction
+teaches the phrase rather than assuming it.
+
+Measured and verified like every other clip: dry-run through `listener.py --test-file`
+UNMUTED on the board, **0 events on all three** (7, 5 and 2 endpoint results), so the
+robot's own "let's begin" does not fire at it. The pass ends on a clean decay to -99 dB,
+not a cut mid-word — Breeze logged a tail condition on that render, so it was checked.
+
+## 5. Rendering these three again
+
+```bash
+cd ~/Projects/breeze-tts
+DESC="A warm, natural man's voice in his mid-thirties, recorded close to the microphone
+in a quiet room. Speaking easily and unhurriedly to one person nearby, with a faint smile
+in the delivery, natural breath and small pauses. Clearly a real person, not a presenter."
+
+# 1. Reference: the first four sentences of the E2 render, cut on its 0.85 s pause at
+#    9.18 s, with the transcript the cut actually contains.
+ffmpeg -y -i output/audition/elliot-E2.wav -t 9.18 -c:a pcm_s16le output/audition/elliot-ref.wav
+
+# 2. The introduction, cloned. Comes out ~1.4 st low; trim it onto 114.4 Hz.
+./say.sh --text-file ~/Projects/hri-project/robot/voice/stage4_intro.txt \
+  --instruction "$DESC" --cfg-scale 4 --seed 42 \
+  --ref-audio /out/audition/elliot-ref.wav \
+  --ref-text "Hello. My name is Pip, and I am a robot. I'm here to practice eye contact with you, but in a way that suits you. There are two things I'd like you to know first." \
+  --output /out/audition/elliot-intro-raw.wav
+ffmpeg -y -i output/audition/elliot-intro-raw.wav \
+  -af "asetrate=24000*1.0823,aresample=24000,atempo=0.9240" \
+  -c:a pcm_s16le output/audition/elliot-intro-final.wav
+
+# 3. A second reference from the SHIFTED intro, containing the name, for the short lines.
+ffmpeg -y -i output/audition/elliot-intro-final.wav -t 5.198 \
+       -c:a pcm_s16le output/audition/elliot-intro-ref.wav
+REF="Congratulations, you've made it to the last stage. My name is Elliot, and I'll be with you for this one."
+
+# 4. pass and retry, cloned from it. Both land within 0.2 st: no second shift.
+./say.sh --text-file ~/Projects/hri-project/robot/voice/stage4_pass.txt \
+  --instruction "$DESC" --cfg-scale 4 --seed 42 \
+  --ref-audio /out/audition/elliot-intro-ref.wav --ref-text "$REF" \
+  --output /out/audition/elliot-pass-raw.wav
+./say.sh --text-file ~/Projects/hri-project/robot/voice/stage4_retry.txt \
+  --instruction "$DESC" --cfg-scale 4 --seed 42 \
+  --ref-audio /out/audition/elliot-intro-ref.wav --ref-text "$REF" \
+  --output /out/audition/elliot-retry-raw.wav
+```
+
+Then level each to **-21.3 LUFS integrated** with the gain `ebur128` reports, not peak —
+see `clips/README.md`. The three arrived at -24.2, -24.6 and -26.4 LUFS, so an unlevelled
+comparison would have made the retry sound worst for no reason at all.
+
+Free the GPU first: `ollama stop gemma4:e4b`. Breeze needs ~7.7 GiB on a 12 GB card.

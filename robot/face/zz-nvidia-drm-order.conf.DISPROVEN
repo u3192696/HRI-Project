@@ -1,0 +1,52 @@
+# /etc/modprobe.d/zz-nvidia-drm-order.conf
+#
+# Make tegra_drm initialise BEFORE nvidia_drm.
+#
+# THE OBSERVED PATTERN (three independent cases, all on this board)
+#
+#   when nvidia_drm initialises        result
+#   --------------------------------   -----------------------------------
+#   AFTER  tegra_drm (gdm, late load)  GL works
+#   AFTER  tegra_drm (manual reload)   GL works
+#   BEFORE tegra_drm (modules-load.d)  EGL_NOT_INITIALIZED, permanently
+#
+#   Evidence from journalctl -k -b, line order:
+#     broken boot : Initialized nvidia-drm @504,  Initialized tegra @541
+#     working run : Console dummy @903 (nvidia unload) -> Console fbdev @912
+#                   (nvidia reload) -- tegra_drm had initialised long before
+#
+#   And the counter-checks that rule out the obvious theories:
+#     - NOT a minor-number problem. The card/render node assignments are
+#       IDENTICAL before and after a reload (verified via the by-path symlinks),
+#       so a plain registration-order swap of node numbers is not what changes.
+#     - NOT a "wait longer" problem. Waiting 3.5 minutes after boot does not
+#       help; only an actual re-initialisation of the module does.
+#     - NOT a modules-load.d file sort-order problem. Renaming the entry to sort
+#       last reordered the modules correctly and changed nothing.
+#
+#   The consistent reading: nvidia_drm must not initialise before the Tegra DRM
+#   stack is up. When it does, EGL is left dead for the whole boot.
+#
+# WHAT THIS LINE DOES
+#   "pre:" declares a soft dependency: loading nvidia_drm first loads tegra_drm.
+#   At sysinit that forces tegra_drm ahead of nvidia_drm, reproducing the order
+#   that works. It is soft, so `modprobe -r nvidia_drm` still works on its own.
+#
+# HONEST STATUS: UNVERIFIED AS OF WRITING
+#   This is a reasoned fix for an observed correlation, not a proven fix. It may
+#   be insufficient — tegra_drm may need to be not merely loaded but fully
+#   bound/probed first, in which case the load still happens too early and the
+#   fallback in kiosk-start.sh will report `using the pixman renderer`.
+#
+# VERIFY AFTER REBOOT (the ordering is the test, not the node numbers):
+#
+#   sudo journalctl -k -b --no-pager | grep -nE 'Initialized nvidia-drm|Initialized tegra'
+#   # want: "Initialized tegra" at a LOWER line number than "Initialized nvidia-drm"
+#
+#   journalctl -u face-kiosk -b | grep -o 'using the [a-z]* renderer' | tail -1
+#   # want: using the gl renderer
+#
+#   If it still says pixman, this fix did not work; see README trap 0 for the
+#   fallback (reload nvidia_drm once at boot after the display stack is up).
+
+softdep nvidia_drm pre: tegra_drm

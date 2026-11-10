@@ -1,0 +1,53 @@
+{
+  "note": "Atlas rig for rung 3 (Milo A): ONE rig for both stills, because neutral and happy are the same pose and a rig that moved between them would make the eyes jump in the cross-fade. Eye cx 588.4 / 757.7 are the dark-mass column centroids, and they straddle the mouth's cx at 672 - that agreement is what validates them. ap_rx 34 and ap_ry 27 are NOT read off a classifier: the CG still's sclera is warm-tinted and its iris amber, so every colour rule that worked on Elliot's blue eye either caught the brow here or stopped at the limbus. They come from a sweep that rendered a closed eye at each candidate and COUNTED the iris pixels still showing, choosing the smallest aperture that leaves none (43 of 2063 at 1920x1080). lid_band is positive because his brow sits on the crease, so there is no clean upper lid to sample.",
+  "source": "assets/milo-neutral.png + assets/milo-happy.png",
+  "width": 1344,
+  "height": 768,
+  "skin": [
+    0.855,
+    0.478,
+    0.392
+  ],
+  "aperture_measured": false,
+  "eyes": [
+    {
+      "cx": 588.4,
+      "cy": 400.0,
+      "iris_r": 16.0,
+      "ap_rx": 34.0,
+      "ap_ry": 27.0,
+      "ap_up": 27.0,
+      "ap_down": 27.0,
+      "pupil_x": 588.4,
+      "pupil_y": 400.0
+    },
+    {
+      "cx": 757.7,
+      "cy": 400.0,
+      "iris_r": 16.0,
+      "ap_rx": 34.0,
+      "ap_ry": 27.0,
+      "ap_up": 27.0,
+      "ap_down": 27.0,
+      "pupil_x": 757.7,
+      "pupil_y": 400.0
+    }
+  ],
+  "mouth": {
+    "cx": 672.0,
+    "cy": 563.0,
+    "half_w": 70.0,
+    "up": 7,
+    "down": 20
+  },
+  "background": [
+    0.067,
+    0.059,
+    0.098
+  ],
+  "lid_band": [
+    -1.6,
+    1.0
+  ],
+  "eyes_closed": "milo-closed.png"
+}

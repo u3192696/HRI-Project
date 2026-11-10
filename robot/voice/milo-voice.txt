@@ -1,0 +1,156 @@
+# Milo's voice: the recipe the rung 3 voice is rendered from
+
+Milo does **not** get a shift. He is the ladder's own rung-3 render, taken as it
+came, and the reason is perceptual rather than numerical — see §2, which is the
+useful part of this file.
+
+## 1. The description
+
+> A warm, natural conversational voice. An expressive adult talking casually and
+> unhurriedly to one person nearby, with natural intonation, small pauses and a
+> relaxed, reassuring tone.
+
+Seed 42, cfg-scale 4, model Breeze TTS 2, in `~/Projects/breeze-tts`. This is the
+rung-3 row of `render-ladder.sh`, so it is reproducible without a separate recipe:
+
+```bash
+cd ~/Projects/breeze-tts
+./render-ladder.sh /home/danny/Projects/hri-project/robot/voice/intro_v2.txt 3
+# -> output/ladder/rung3-warm-conversational.wav
+```
+
+Measured on `intro_v2.txt` with Praat (median F0, p10–p90 in semitones):
+**165.8 Hz, 13.3 st, ladder position 0.42.** The measuring script reproduces the
+published anchors exactly (291.5 / 266.6 / 165.8 / 114.0 Hz), so this is comparable
+with the figures in `robot/voice/SCRIPT.md`.
+
+## 2. Why there is no shift: a shift deepens a voice, it does not masculinise it
+
+The obvious next step was M2 — the same render moved down 2.5 semitones with
+`asetrate` + `aresample` + `atempo`, the recipe that put Owen into the neutral band.
+It measures **144.1 Hz, 13.1 st, position 0.50**, which is further along the ladder
+and closer to the adult-male band, so on paper it is the better rung-3 placement.
+
+Danny's ear rejected it, and the wording of the rejection is the finding:
+
+> "M2 and M3 are coming across as more feminine. Not higher pitched feminine, but a
+> more deep throaty female voice instead of a deeper male voice."
+
+That is exactly what the transform does. `asetrate` scales **every** frequency by one
+factor, so the formant *pattern* — the spacing between F1, F2 and F3 that actually
+carries perceived sex — is preserved and merely moved down. The result is a **larger
+version of the same speaker**, not a different one: a longer vocal tract under a
+lower register, which reads as a big woman rather than as a man. M3, rendered from a
+"low and even" description with no shift at all, landed the same way (121.6 Hz,
+5.0 st, position 1.04 — lower and flatter than the rung-4 ceiling), so the effect is
+not an artefact of the shift: it is what this model gives when asked for "low".
+
+The consequence for the ladder is worth stating plainly, because the register table
+in `SCRIPT.md` invites the opposite reading:
+
+- **M1 at 165.8 Hz reads male and was accepted.**
+- **M2 at 144.1 Hz reads female.** Lower is not more male.
+
+So the 155–185 Hz "neutral overlap band" is a statement about where a voice stops
+being *reliably* read as one sex, not a dial. A voice can be moved into the male
+register band and still be read as female, and this one was. If Milo ever needs to
+be both lower **and** male, the fix is a description that renders male to begin with
+(this model is near-bimodal, so it is a seed-and-wording job), or formant work that
+lowers F1/F2 more than F0 — which `asetrate` cannot do, because it is uniform.
+
+What is unaffected: position 0.42 sits 0.04 above Owen (0.38), so Owen and Milo are
+close on this axis. Danny heard both and preferred this; the placement cost is
+recorded rather than argued away.
+
+## 3. The three clips, all landed 5 November
+
+Stage 3 speaks in Milo now — its introduction, its pass and its retry line. Measured
+median F0, so the person is the same person across all three:
+
+| clip | script | length | median F0 | correction |
+|---|---|---|---|---|
+| `clips/rung3-warm-conversational-intro.wav` | `stage3_intro.txt` | 31.2 s | 166.7 Hz | none: the clone landed 0.09 st from the anchor |
+| `clips/rung3-warm-conversational-pass.wav` | `stage3_pass.txt` | 3.9 s | 166.5 Hz | **+1.34 st** (came out at 153.4) |
+| `clips/rung3-warm-conversational-retry.wav` | `stage3_retry.txt` | 4.1 s | 165.9 Hz | **−1.06 st** (came out at 176.3) |
+
+The anchor is **165.8 Hz**, the M1 render's own measurement, and every line is moved
+onto it rather than onto a number in a note.
+
+The direction of those two corrections is the thing to remember: Owen's session-end
+lines both came out *higher* than their anchor, because a line that sounds glad to
+keep going is a higher register, and it is tempting to treat that as a rule. Milo's
+pass came out **lower**, from the same reference, the same delivery note and the same
+clone. So each line is measured and none is predicted.
+
+What the pass says is the ladder's hand-over: *"Great job! Time for you to move on to
+my friend Elliot."* It names the next stage's person and not himself and not Owen,
+which is the same construction as Pip's pass naming Owen. `stage2_pass.txt` (Owen
+saying *"…my friend Milo"*) can now be written for the same reason — it was blocked
+only because it named someone who did not exist — but it is a separate clip and was
+not part of this job.
+
+## 4. Rendering these three again
+
+The reference is a cut of the **M1 render**, not a description: description plus seed
+does not hold identity across texts, so the clone is what makes stage 3 one person.
+
+```bash
+cd ~/Projects/breeze-tts
+DESC="A warm, natural conversational voice. An expressive adult talking casually and
+unhurriedly to one person nearby, with natural intonation, small pauses and a
+relaxed, reassuring tone."
+
+# 1. Reference: the first four sentences of the ladder's rung-3 render, cut on its
+#    0.59 s pause at 14.173 s, with the transcript the cut actually contains.
+ffmpeg -y -i output/ladder/rung3-warm-conversational.wav -t 14.173 \
+       -c:a pcm_s16le output/audition/milo-ref.wav
+
+# 2. The introduction, cloned from that reference. No shift: 166.7 Hz against the
+#    anchor's 165.8 is 0.09 st, which is the same reading twice.
+./say.sh --text-file ~/Projects/hri-project/robot/voice/stage3_intro.txt \
+  --instruction "$DESC" --cfg-scale 4 --seed 42 \
+  --ref-audio /out/audition/milo-ref.wav \
+  --ref-text "Hello. My name is Pip, and I am a robot. I'm here to practice eye contact with you, but in a way that suits you. There are two things I'd like you to know first." \
+  --output /out/audition/milo-intro-raw.wav
+
+# 3. A second reference for the short lines: the intro's first two sentences, cut at
+#    5.921 s. They CONTAIN THE NAME, so the clone is told who it is.
+ffmpeg -y -i output/audition/milo-intro-raw.wav -t 5.921 \
+       -c:a pcm_s16le output/audition/milo-intro-ref.wav
+REF="Congratulations, you've made it to the next stage. My name is Milo, and I'll be with you from here until you're ready for stage four."
+
+./say.sh --text-file ~/Projects/hri-project/robot/voice/stage3_pass.txt \
+  --instruction "$DESC" --cfg-scale 4 --seed 42 \
+  --ref-audio /out/audition/milo-intro-ref.wav --ref-text "$REF" \
+  --output /out/audition/milo-pass-raw.wav
+./say.sh --text-file ~/Projects/hri-project/robot/voice/stage3_retry.txt \
+  --instruction "$DESC" --cfg-scale 4 --seed 42 \
+  --ref-audio /out/audition/milo-intro-ref.wav --ref-text "$REF" \
+  --output /out/audition/milo-retry-raw.wav
+
+# 4. Register corrections + levelling. asetrate moves pitch with the formants and
+#    atempo restores the duration; the gain is what ebur128 reports against -21.3.
+ffmpeg -y -i output/audition/milo-pass-raw.wav \
+  -af "asetrate=24000*1.0808,aresample=24000,atempo=0.9252" pass-shifted.wav
+ffmpeg -y -i output/audition/milo-retry-raw.wav \
+  -af "asetrate=24000*0.9404,aresample=24000,atempo=1.0634" retry-shifted.wav
+```
+
+`asetrate` here shifts **up** for the pass, which is worth noticing: the lesson in §2 is
+that a shift makes a voice *bigger*, and a 1.3 st move is small enough to be the same
+person, but it is still a formant move and it is why these are corrections of a
+measurement rather than a voice design.
+
+Then re-run the listener check on the board, because a voice change moves where Vosk
+puts its endpoint and `"Let's Begin"` sits inside two of these scripts:
+
+```bash
+# pad each clip with 1.2 s of silence first, 16 kHz mono
+ssh orin 'cd ~/robot/voice && ./.venv/bin/python listener.py --test-file /tmp/clip.wav'
+# expect: 0 event(s) - no trigger, no prompt, nothing executed
+```
+
+All three passed on 5 November (8, 1 and 2 endpoint results, 0 events). Vosk returns
+`[unk]` for most of this voice, so that test proves *safety, not content*: the words are
+the text files, and whether he says "Elliot" the way an Australian says it is an ear
+question, not a machine one.

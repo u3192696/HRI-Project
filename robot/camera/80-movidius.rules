@@ -1,0 +1,36 @@
+# /etc/udev/rules.d/80-movidius.rules
+#
+# Grant access to Luxonis OAK / Movidius MyriadX USB devices for non-root users.
+#
+# WHY THIS IS NEEDED
+#   A freshly plugged OAK device appears as /dev/bus/usb/<bus>/<dev> owned by
+#   root:root mode 0664. The `jetson` user is not in root's group, so DepthAI
+#   cannot open it even though it can SEE it. The symptom is specific and worth
+#   recognising, because it looks like a missing device:
+#
+#     [depthai] [warning] Insufficient permissions to communicate with
+#                          X_LINK_UNBOOTED device having name "1.2.1".
+#                          Make sure udev rules are set
+#     [1] discovery: 0 device(s)
+#
+#   Note "having name 1.2.1" — that is the USB path (bus 1, port 2, port 1),
+#   i.e. DepthAI DID enumerate it and is telling you it is a permissions fault,
+#   not an absent device.
+#
+# THIS IS THE VENDOR'S OWN RULE, taken verbatim from the OAK USB deployment
+# guide. Keeping it identical to the documentation matters more than tidying it:
+# it is the configuration Luxonis support will assume you are running.
+#
+#   https://docs.luxonis.com/hardware/platform/deploy/usb-deployment-guide
+#
+# A TIGHTER ALTERNATIVE, if 0666 (world read/write) is unwanted: this user is
+# already in the `plugdev` group, so
+#     SUBSYSTEM=="usb", ATTRS{idVendor}=="03e7", GROUP="plugdev", MODE="0660"
+# would also work. The vendor rule is used here for supportability on a lab
+# prototype; swap it if this ever leaves the bench.
+#
+# Applies to the whole 03e7 vendor id, which covers both the un-booted device
+# (03e7:2485 Movidius MyriadX) and the booted one (03e7:f63b Myriad VPU), so it
+# keeps working across the firmware upload that happens during startup.
+
+SUBSYSTEM=="usb", ATTRS{idVendor}=="03e7", MODE="0666"

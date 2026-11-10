@@ -1,0 +1,59 @@
+# CAD toolchain for the mechanism work (design -> STEP/STL -> slice).
+#
+# Why uv + PyPI instead of nixpkgs pythonPackages:
+#   * the OCP (OpenCASCADE) wheels are self-contained and track upstream far
+#     faster than nixpkgs does;
+#   * nothing CAD-shaped enters the system closure; `rm -rf .venv` is the
+#     whole uninstall.
+#
+# Both libraries must be reached from the devShell (flake.nix) so the loader
+# path for libGL/libexpat/libstdc++ is set -- importing them outside the shell
+# fails with "libGL.so.1: cannot open shared object file".
+#
+# Usage:  uv sync && uv run python part.py
+# (uv sync creates .venv/ + uv.lock; both are gitignored / re-derivable.)
+#
+# ---------------------------------------------------------------------------
+# VERSIONS ARE PINNED DELIBERATELY -- DO NOT LOOSEN WITHOUT RUNNING THE IMPORT
+# TEST. CadQuery and build123d both install the SAME `OCP` python namespace,
+# but they switched OCP distributions at different times:
+#
+#   cadquery 2.7.0        -> cadquery-ocp        >=7.8.1,<7.9   (WITH vtk)
+#   cadquery 2.8.0        -> cadquery-ocp        >=7.9.3.1,<8.0
+#   build123d 0.10.0      -> cadquery-ocp        >=7.8,<7.9     (WITH vtk)
+#   build123d 0.11-0.12   -> cadquery-ocp-novtk  >=7.9,<8.0
+#   build123d 0.13.0      -> cadquery-ocp-novtk  >=8.0,<8.1
+#
+# Installing a vtk-OCP and a novtk-OCP together does not error at install time
+# -- it silently produces a MIXED OCP package, and the first `import cadquery`
+# then dies mid-import, e.g.
+#   ImportError: cannot import name 'TColgp_HArray1OfPnt' from 'OCP.TColgp'
+# (that is the exact failure this pinning was derived from: OCP/TColgp had 9
+# symbols instead of ~40, because the 8.0 novtk files had shadowed the 7.8
+# ones). So the ONLY self-consistent pair is cadquery 2.7 + build123d 0.10,
+# both on cadquery-ocp 7.8.x.
+#
+# ocp-gordon is listed explicitly to hold it at 0.1.x: build123d 0.10 asks
+# only for `>=0.1.17`, so uv would otherwise take 0.3.x, which depends on
+# cadquery-ocp-proxy/-novtk and re-introduces the collision. Verify with:
+#   uv pip list | grep -i ocp      # exactly one cadquery-ocp, no -novtk/-proxy
+# ---------------------------------------------------------------------------
+#
+# Python is pinned to 3.13 for the same class of reason: cadquery-ocp publishes
+# cp313 wheels only, so under the devShell's default python3 (3.14) uv sync
+# fails with "no wheel for the current platform (cp314 vs cp313)". See
+# .python-version.
+[project]
+name = "hri-cad"
+version = "0.0.0"
+description = "Parametric CAD toolchain (CadQuery + build123d) for the Orin project"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "cadquery==2.7.0",
+  "build123d==0.10.0",
+  "ocp-gordon<0.2",
+]
+
+# No package to build: this project is an environment, not a distributable.
+[tool.uv]
+package = false

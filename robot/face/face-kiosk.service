@@ -1,0 +1,106 @@
+[Unit]
+Description=Social robot face kiosk (Weston + face app on DisplayPort)
+Documentation=file:///home/jetson/robot/face/README.md
+# Replaces gdm3/GNOME — it does NOT run alongside it. Conflicts= makes systemd
+# stop gdm if it is somehow already up; the real guarantee is that the default
+# target is multi-user.target, so graphical.target (and gdm with it) is never
+# reached at boot. Both matter: a display manager that grabbed DRM master first
+# would leave the kiosk unable to take the display.
+Conflicts=gdm.service display-manager.service
+After=systemd-user-sessions.service seatd.service
+Wants=seatd.service
+# Wait for udev to settle so the DRM card carrying the display exists before we
+# try to open it. Do NOT name a specific card here: the numbering is not stable
+# across module load order (nvidia-drm has been both card0 and card1 on this
+# board), so kiosk-start.sh discovers the connected output by attribute instead.
+After=systemd-udev-settle.service
+# /run/user/1000 must exist before weston can create its Wayland socket there.
+# It is normally made by logind when the user logs in — but this is a SYSTEM
+# service and nothing logs in, so we must create it ourselves.
+#
+# Requires= (not just Wants=) because the script treats a missing directory as
+# FATAL, and Wants= alone let us lose the race: during a restart storm (the
+# unit was cycling inside StartLimitIntervalSec) systemd was caught tearing
+# user-runtime-dir@1000.service down — it carries StopWhenUnneeded=yes — at the
+# moment our new instance asked for the directory, so ExecStart died with
+# "FATAL /run/user/1000 does not exist" even though the dependency was declared.
+#
+# ALSO RUN, ONCE, ON THE DEVICE:  sudo loginctl enable-linger jetson
+#   Linger makes logind create /run/user/1000 at boot and keep it up for as long
+#   as the machine is running, which removes the race entirely rather than
+#   ordering around it. The Requires= below is the in-unit guarantee; linger is
+#   what makes the directory exist early and stay put. Both were observed to be
+#   necessary in practice, so set both.
+Requires=user-runtime-dir@1000.service
+After=user-runtime-dir@1000.service
+# Restart-rate limiting lives in [Unit] (in [Service] systemd ignores it).
+#
+# Interval 0 DISABLES the limit, deliberately — the same trade gaze.service
+# makes. With the old 120s/5-burst setting, a boot with the display OFF (or the
+# projector not yet powered) exhausted the burst within two minutes and left the
+# unit in the failed state PERMANENTLY: switching the display on afterwards did
+# not bring the face back, it needed a manual `systemctl restart`. On a bench
+# that is carried between home and a lab, the power-on order should not decide
+# whether the robot has a face. Retrying forever does.
+#
+# NOTE: self-healing comes from Restart=always below, NOT from RestartSec.
+# kiosk-start.sh now polls for a connected display for up to 60s before giving
+# up (KIOSK_DISPLAY_WAIT_SECS), so a display plugged in mid-wait is picked up in
+# ~1s and the journal is ~13x quieter. That is strictly better than relying on
+# the restart interval; the wait is bounded so the unit never claims to be
+# healthy while showing nothing.
+StartLimitIntervalSec=0
+# nvidia_drm must be re-initialised before the compositor tries GL: loading it
+# at the default time leaves weston's gl-renderer unable to initialise EGL on
+# this board (see README trap 0). The reload unit does that once and completes
+# before we start. Keep this as a real ordering dependency - without it the
+# compositor races the reload and simply falls back to pixman.
+After=nvidia-drm-reload.service
+Wants=nvidia-drm-reload.service
+
+[Service]
+Type=simple
+User=jetson
+Group=jetson
+# Supplementary groups that grant DRM master and input access without root.
+SupplementaryGroups=video render weston-launch
+# NOTE: /run/face is NOT declared here. Two units declaring RuntimeDirectory on
+# the same path is a trap: systemd removes the directory when EITHER unit stops,
+# so whichever stops first pulls it out from under the other. That is harmless
+# while only the face uses it, but gaze.service writes into /run/face too, and
+# after such a removal gaze (running as `jetson`) cannot recreate it - /run is
+# root-owned - so it dies with EACCES on start.
+#
+# The directory is instead declared once, system-wide, by
+# /etc/tmpfiles.d/robot-face.conf, which both units depend on. See the
+# tmpfiles.d file for the ownership and mode rationale.
+# (Historically this unit created /run/face itself, which is why the start
+# script relies on it existing.)
+ExecStart=/home/jetson/robot/face/kiosk-start.sh
+# Retries with a delay so a machine booted without a display does not spin.
+Restart=always
+RestartSec=5
+# Give the compositor time to tear down cleanly on stop. The default 90s is
+# generous; 10s is plenty and stops systemd SIGKILLing weston, which is what
+# produced the "State 'stop-sigterm' timed out. Killing." messages.
+TimeoutStopSec=10
+StandardOutput=journal
+StandardError=journal
+# A kiosk compositor needs to be able to create the Wayland socket and open DRM.
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+# --- THE TRAP THAT COST A DEBUGGING SESSION ---
+# Do NOT add ProtectHome=read-only (or =yes) here.
+# systemd implements ProtectHome by remounting /home, /root **AND /run/user**
+# read-only. Weston must create its Wayland socket at /run/user/1000/<socket>,
+# and GLib/dconf must write /run/user/1000/dconf/user. A read-only /run/user
+# therefore kills the compositor at startup with no obvious error in the unit's
+# journal — weston logs nothing after EGL init and simply exits before its
+# socket appears, which reads as "weston exited before creating a socket."
+# The face code is read-only by virtue of the service user not owning /etc or
+# system paths; the home directory does not need to be locked to achieve that.
+
+[Install]
+WantedBy=multi-user.target

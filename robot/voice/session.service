@@ -1,0 +1,73 @@
+[Unit]
+Description=Session conductor — the four stages, their timers, and what the screen says
+Documentation=file:/home/jetson/robot/voice/README.md
+
+# Owns the RUN-THROUGH: which stage is up, the 60 s gaze session inside a stage,
+# the 30 s success screen, the announcement clips between stages, and the state of
+# /run/face/session.json that the face draws and the greeter reads.
+#
+# THE INTRODUCTIONS ARE NOT HERE, and that asymmetry is deliberate. Stage 1's
+# introduction is the long clip the GREETER plays when a real person settles in
+# front of the robot, because that one is triggered by presence rather than by a
+# timer. Stages 2-4 announce themselves from here, and those clips are placeholders.
+#
+# Deliberately NOT ordered against listener.service, greeter.service,
+# face-kiosk.service or gaze.service. Each of those degrades on its own and this
+# one is no different: with the listener down it sits in standby and nothing
+# happens, with the face down it runs a run-through nobody can see. Coupling them
+# would only let one unrelated failure take the others down.
+#
+# What it does need from the environment is the file directory and the user's
+# audio session, because it plays the announcements. Neither is ordered against
+# the services that create them, only against the things that always create them:
+After=systemd-tmpfiles-setup.service
+Wants=systemd-tmpfiles-setup.service
+
+# /run/user/1000 is created by logind at login, and at a cold boot nothing has
+# logged in, so this unit is what makes it appear. Same dependency, and the same
+# reason, as greeter.service and listener.service.
+After=user-runtime-dir@1000.service
+Wants=user-runtime-dir@1000.service
+
+# StartLimit* belong in [Unit]; systemd SILENTLY IGNORES them in [Service]
+# ("Unknown key name ... ignoring"). Interval 0 disables rate limiting: this is a
+# bench prototype, so a permanent fault should keep retrying rather than leave an
+# unattended robot frozen on a stage's screen.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=jetson
+Group=jetson
+WorkingDirectory=/home/jetson/robot/voice
+
+# A system service gets no XDG_RUNTIME_DIR from logind, and without it the player
+# cannot find the PipeWire socket at all: it fails looking like "no audio
+# hardware" rather than "no session".
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=PYTHONUNBUFFERED=1
+
+# /usr/bin/python3, NOT the listener's venv: this process is stdlib only (it
+# imports greeter for the player, and greeter is stdlib too). Keeping it off the
+# venv means a broken vosk install cannot stop the run-through.
+ExecStart=/usr/bin/python3 /home/jetson/robot/voice/session.py
+
+# SIGTERM is handled in session.py rather than left to the default, because the
+# handler writes the screen back to standby on the way out. Killing it outright
+# would leave a stage's screen on the projector with nothing behind it to move it
+# on, which is the failure this whole file exists to make visible.
+KillSignal=SIGTERM
+TimeoutStopSec=10
+
+# Restarting is also what recovers the screen: a fresh conductor publishes standby
+# as its first act, so a crash costs a few seconds of the run rather than leaving
+# the projector showing a stage that has nobody running it.
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

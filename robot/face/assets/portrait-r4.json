@@ -1,0 +1,50 @@
+{
+  "source": "assets/portrait-r4.png",
+  "width": 1344,
+  "height": 768,
+  "background": [
+    0.012,
+    0.035,
+    0.059
+  ],
+  "skin": [
+    0.941,
+    0.671,
+    0.565
+  ],
+  "aperture_measured": true,
+  "eyes": [
+    {
+      "cx": 596.9,
+      "cy": 348.0,
+      "iris_r": 11.0,
+      "ap_rx": 26.5,
+      "ap_ry": 10.0,
+      "ap_up": 13.0,
+      "ap_down": 7.0,
+      "pupil_x": 596.8,
+      "pupil_y": 343.9,
+      "px": 205
+    },
+    {
+      "cx": 747.7,
+      "cy": 348.2,
+      "iris_r": 12.5,
+      "ap_rx": 27.0,
+      "ap_ry": 10.6,
+      "ap_up": 12.0,
+      "ap_down": 7.0,
+      "pupil_x": 748.1,
+      "pupil_y": 344.2,
+      "px": 232
+    }
+  ],
+  "mouth": {
+    "cx": 672.5,
+    "cy": 518.0,
+    "half_w": 55.5,
+    "up": 15,
+    "down": 19,
+    "px": 145
+  }
+}

@@ -1,0 +1,159 @@
+# Owen's voice: the recipe the rung 2 voice is rendered from
+
+The voice ladder is **described, not hunted for** (see breeze-tts/render-ladder.sh).
+Each rung is a written description handed to Breeze TTS 2; the same description
+plus the same seed re-renders the same character. This file is the recipe for Owen,
+kept beside the scripts so the pair of stage 2 clips can be rebuilt.
+
+It has two halves, because the model alone could not give a gender-neutral voice: a
+description that produces the character, then a measured pitch/timbre shift that
+puts the register where a listener stops reading it as female.
+
+## 1. The description
+
+> A friendly, animated assistant voice. A young adult speaking, not a cartoon
+> character: a warm, light mid-range register, gently expressive and encouraging,
+> with clear diction and an upbeat delivery. Still recognisably a synthesised voice.
+
+Seed 21, cfg-scale 4, model Breeze TTS 2, in `~/Projects/breeze-tts`.
+
+## 2. The shift: -3.5 semitones, pitch and formants together
+
+The description above renders at a median F0 of 215 Hz on the intro text — squarely
+in the female-typical band (adult female speech centres on ~200-220 Hz), and both
+Danny and the measurements agree the first impression was "a female voice". That is
+a register problem, not a quality problem, so the fix is a shift rather than a
+different description.
+
+`asetrate` + `aresample` + `atempo` moves **pitch and formants together** while
+keeping the duration, which is the "larger person" transform: a real speaker with a
+lower voice also has a longer vocal tract, so moving both is what sounds natural.
+Moving pitch alone would leave female formants under a male register, which reads as
+processed.
+
+The model will not give the register by description. An "androgynous adult, neither
+clearly male nor female" instruction measured 223/248/279 Hz at seeds 3/5/11 — no
+lower than the character description, because "friendly / animated / bright" is
+carrying the register. Hence the explicit shift.
+
+-3.5 st was chosen by measurement, not taste: it puts the intro at **176 Hz**, the
+centre of the 155-185 Hz band where adult male and female distributions overlap,
+while leaving the spectral centroid at 1998 Hz — darker than the untouched render
+(2474 Hz) but still in the range of real adult speech (rung 3 measures 2246 Hz,
+rung 4 2127 Hz). A -5.8 st shift measured 154/187 Hz but dragged the centroid to
+1733/1718 Hz, i.e. darker than any natural voice on the ladder — an implausibly long
+vocal tract, which is what "slowed down" sounds like. So -3.5 st is the deepest
+shift that stays plausible, and it is the one shipped.
+
+```bash
+ffmpeg -y -i in.wav -af "asetrate=24000*0.8173,aresample=24000,atempo=1.2235" \
+       -c:a pcm_s16le out.wav          # 0.8173 = 2^(-3.5/12), 1.2235 = 1/0.8173
+```
+
+## 3. One voice, by cloning from the shifted anchor
+
+Description plus seed does **not** lock identity across different texts: two renders
+of the same description and seed came out 3.3-3.7 semitones apart — two different
+people. So one clip is rendered from the description and the other is a clone of it.
+
+The order matters. Render the **intro**, shift it, then clone the **skip** from the
+shifted intro. Cloning from the shifted file is what keeps both clips in the neutral
+band: when the skip was rendered from an unshifted reference and shifted afterwards,
+the pair straddled it (176 Hz and 214 Hz) and no single shift could put both inside.
+Cloned from the shifted anchor, they measure 176.3 and 180.1 Hz — 0.4 semitones
+apart, one person.
+
+```bash
+cd ~/Projects/breeze-tts
+# Stop at the first line after the block that is NOT a blockquote line. A sed range
+# whose end pattern never matches does not fail - it prints to the end of the file,
+# which hands the whole document to the model as the instruction (and OOMs the GPU).
+DESC="$(awk '/^> A friendly/{f=1} f&&!/^>/{exit} f' \
+        ~/Projects/hri-project/robot/voice/owen-voice.txt | sed 's/^> //' \
+        | tr '\n' ' ' | sed 's/  */ /g; s/ $//')"
+
+# 1. The intro, described + seeded (215 Hz before the shift).
+./say.sh --text-file ~/Projects/hri-project/robot/voice/stage2_intro.txt \
+  --instruction "$DESC" --cfg-scale 4 --seed 21 \
+  --output /out/audition/owen-B0-intro.wav
+
+# 2. Shift it to the neutral register (176 Hz).
+ffmpeg -y -i output/audition/owen-B0-intro.wav \
+  -af "asetrate=24000*0.8173,aresample=24000,atempo=1.2235" \
+  -c:a pcm_s16le output/audition/owen-final-intro.wav
+
+# 3. A reference from the SHIFTED intro: the first two sentences, ending on the
+#    0.59 s pause at 10.92 s. The transcript must match the cut exactly.
+ffmpeg -y -i output/audition/owen-final-intro.wav -t 10.92 -c:a pcm_s16le \
+       output/audition/owen-final-ref.wav
+
+# 4. The skip clip, cloned from that reference (lands at 180 Hz, no second shift).
+./say.sh --text-file ~/Projects/hri-project/robot/voice/stage2_skip.txt \
+  --instruction "$DESC" --cfg-scale 4 --seed 21 \
+  --ref-audio /out/audition/owen-final-ref.wav \
+  --ref-text "Congratulations, you've made it to the next stage. My name is Owen, and I'm looking forward to working with you until you are ready for stage three." \
+  --output /out/audition/owen-final-skip.wav
+```
+
+Then level each clip to the library convention (-21.3 LUFS integrated, not peak —
+see `clips/README.md`) and re-measure with Praat before shipping. Re-run
+`listener.py --test-file` on both afterwards: a voice change moves where Vosk puts
+its endpoint, and the phrase "Let's Begin" is the one thing that must not decode
+cleanly while the robot is talking.
+
+Free the GPU first: `ollama stop gemma4:e4b`. Breeze needs ~7.7 GiB on a 12 GB card.
+
+## What the neutral register costs
+
+The realism axis in `SCRIPT.md` is dominated by register, so a neutral Owen sits
+**further along the ladder than the 25% Danny originally asked for**: 0.37 (intro)
+and 0.39 (skip) instead of 0.18 and 0.26. That is the price of the neutral voice,
+not a loss of quality — clarity, prosody and breathiness are unchanged (HNR-cc 13.4
+dB, against 13.9 before the shift), and the timbre is a plausible adult rather than
+a processed one. Both numbers are recorded so nobody later reads 0.39 as drift.
+
+## 4. The pass line: `stage2-pass.wav`
+
+The session-end line that names the next stage's person, added 5 November when Milo
+finally existed to be named:
+
+> Great job! Time for you to move on to my friend Milo.
+
+Same description and the same clone reference as the other two (`owen-final-ref.wav`,
+the shifted-intro cut), but **seed 12, not 21**:
+
+| render | seed | reference | came out |
+|---|---|---|---|
+| `owen-pass-raw.wav` | 21 | `owen-final-ref.wav` | **251.6 Hz** — 6.2 st high, unusable |
+| `owen-pass-s12.wav` | 12 | `owen-final-ref.wav` | 187.5 Hz |
+| `owen-pass-retryref.wav` | 21 | a cut of the shipped retry | 202.6 Hz |
+
+**A clone does not pin the register; on a twelve-word line the seed dominates.** The
+same recipe, reference and description produced 251.6 Hz at one seed and 187.5 Hz at
+another — a gap of 5.2 st, which is a different person's apparent size, not a delivery
+difference. So the working rule for short lines is: render two or three seeds, keep the
+one nearest the anchor, then **trim** (here −1.07 st, landing 178.8 Hz against the
+intro's 176.3 and the retry's 176.6). A large correction is never the fix — it is the
+signal that the seed was wrong.
+
+```bash
+cd ~/Projects/breeze-tts
+DESC="$(awk '/^> A friendly/{f=1} f&&!/^>/{exit} f' \
+        ~/Projects/hri-project/robot/voice/owen-voice.txt | sed 's/^> //' \
+        | tr '\n' ' ' | sed 's/  */ /g; s/ $//')"
+
+./say.sh --text-file ~/Projects/hri-project/robot/voice/stage2_pass.txt \
+  --instruction "$DESC" --cfg-scale 4 --seed 12 \
+  --ref-audio /out/audition/owen-final-ref.wav \
+  --ref-text "Congratulations, you've made it to the next stage. My name is Owen, and I'm looking forward to working with you until you are ready for stage three." \
+  --output /out/audition/owen-pass-s12.wav
+ffmpeg -y -i output/audition/owen-pass-s12.wav \
+  -af "asetrate=24000*0.9402,aresample=24000,atempo=1.0636" \
+  -c:a pcm_s16le output/audition/owen-pass-trim.wav
+# then level to -21.3 LUFS with the gain ebur128 reports
+```
+
+Note the `awk` in that recipe rather than `sed -n '/start/,/end/p'`: a sed range whose
+end pattern never matches prints to the END OF FILE without failing, and the model then
+receives the whole document as its instruction. That is not a hypothetical — it is how
+the first attempt at this clip OOMed the GPU.

@@ -1,0 +1,5 @@
+Exception while processing file: make-fcstd.py ['NoneType' object has no attribute 'ShapeColor' and no __dict__ for setting new attributes]
+FreeCAD 1.1.1, Libs: 1.1.1RUnknown
+(C) 2001-1980 FreeCAD contributors
+FreeCAD is free and open-source software licensed under the terms of LGPL2+ license.
+

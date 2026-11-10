@@ -1,0 +1,46 @@
+[Unit]
+Description=OAK-D Lite MJPEG camera stream (robot eye)
+#
+# ON DEMAND, not always-on. The OAK-D is exclusive, and gaze.service owns it
+# whenever the robot is running — the face needs the camera to react to people.
+# This viewer is kept as a debugging tool: start it when you want to see the raw
+# feed, and it takes the camera from gaze automatically (Conflicts= below).
+# Start it by hand, not at boot:
+#     sudo systemctl start oak-viewer.service
+#     sudo systemctl stop  oak-viewer.service     # hand back to gaze
+Documentation=file:/home/jetson/robot/camera/README.md
+# NOT After=network-online.target. The viewer binds 0.0.0.0 locally and does not
+# fetch anything — the camera is a local USB device. Declaring a network
+# dependency only adds a way to fail at a bench with no NIC/LAN. (The URL in the
+# banner below is for whoever is browsing to it, not a dependency of serving.)
+After=multi-user.target
+# StartLimit* belong in [Unit], NOT [Service]. systemd silently ignores them in
+# [Service] with "Unknown key name ... ignoring", so the rate limit would never
+# apply - a crash-looping unit would spin forever while looking configured.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# The OAK-D is exclusive: gaze.service owns it whenever the robot is running.
+# Starting the viewer stops gaze, and starting gaze stops the viewer, so the
+# loser never dies with a confusing X_LINK_DEVICE_ALREADY_IN_USE. This is the
+# mirror of the line in gaze.service - both are needed, because Conflicts= is
+# what makes the swap work in either direction.
+Conflicts=gaze.service
+  
+[Service]
+Type=simple
+User=jetson
+Group=jetson
+# SupplementaryGroups matches the pattern already proven for face-kiosk: video
+# and render for the DRM nodes, plus plugdev for USB devices generally.
+SupplementaryGroups=video render plugdev
+WorkingDirectory=/home/jetson/robot/camera
+ExecStart=/home/jetson/robot/camera/.venv/bin/python viewer.py --port 8080 --fps 15 --quality 75
+Restart=always
+RestartSec=5
+TimeoutStopSec=10
+# The OAK needs to be released cleanly; SIGTERM lets viewer.py stop the pipeline.
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,77 @@
+[Unit]
+Description=Gaze tracking — OAK-D face detection driving the robot's eyes and expression
+Documentation=file:/home/jetson/robot/perception/README.md
+# NOT After=network-online.target. The OAK-D is a LOCAL USB device and the
+# SCRFD model resolves from ~/.cache/depthai/models (verified with the network
+# namespace isolated: `unshare -rn python -c 'dai.NNArchive(dai.getModelFromZoo(...))'`
+# succeeds with only loopback). Nothing here touches the network, so declaring
+# a network dependency only buys a way to fail: at a lab bench with no NIC and
+# no LAN the target may never be reached, and gaze would never start — a robot
+# that boots to a blank face for no reason. multi-user.target is sufficient.
+After=multi-user.target
+
+# NOT ordered against face-kiosk, deliberately. /run/face is created by
+# /etc/tmpfiles.d/robot-face.conf, and coupling gaze's start to the KIOSK's
+# health was tried and reverted: the kiosk crash-looped on a missing executable
+# bit, so /run/face never appeared, so gaze could not start, and the whole robot
+# looked broken from one unrelated file-mode problem. Ordering dependencies
+# between services should be used for a genuine data dependency, not to paper
+# over shared writable state.
+
+# /run/face is declared system-wide by /etc/tmpfiles.d/robot-face.conf, NOT by
+# RuntimeDirectory. Two units declaring RuntimeDirectory on one path means
+# systemd deletes it when EITHER stops, so whichever goes down first breaks the
+# other - and because /run is root-owned, `jetson` cannot recreate it.
+# systemd-tmpfiles-setup.service is the real dependency: it creates /run/face
+# from that file at boot and never removes it while the machine is up.
+After=systemd-tmpfiles-setup.service
+Wants=systemd-tmpfiles-setup.service
+
+# DepthAI holds the OAK-D EXCLUSIVELY — two processes cannot share it. The
+# viewer is kept as an on-demand debugging tool rather than an always-on
+# service, and this pair of Conflicts= lines makes the swap automatic: starting
+# either one stops the other. Without it the loser dies with
+# X_LINK_DEVICE_ALREADY_IN_USE, which reads like a hardware fault.
+Conflicts=oak-viewer.service
+
+# StartLimit* belong in [Unit]; systemd SILENTLY IGNORES them in [Service]
+# ("Unknown key name ... ignoring"), leaving a crash-looping unit either
+# unbounded or, if you intended to disable the limit, still limited.
+#
+# Interval 0 DISABLES rate limiting. With a burst limit, a PERMANENT fault (a
+# missing directory, a bad path) kills the unit after ~25s and it STAYS dead
+# until someone runs `systemctl reset-failed` — so an unattended robot silently
+# loses its eyes, which is exactly what happened here. This is a prototype on a
+# bench, so trade the other way: no limit, and a longer RestartSec so a
+# permanent fault retries every 10s instead of spinning.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=jetson
+Group=jetson
+# Same groups proven for oak-viewer: video/render for DRM, plugdev for USB.
+SupplementaryGroups=video render plugdev
+WorkingDirectory=/home/jetson/robot/perception
+# The camera venv holds depthai + depthai-nodes; there is no system-wide copy.
+ExecStart=/home/jetson/robot/camera/.venv/bin/python /home/jetson/robot/perception/gaze.py --fps 12 --status /run/face/gaze-status.json --stream 8080
+# Its own prints are the only account of what it is doing, and Python buffers
+# stdout when it is not a terminal: in the journal they appeared only when the
+# process exited, so a fault that was happening every frame was invisible while it
+# happened. The frame feed's first error and the startup line are how a monitor
+# gets diagnosed, so they must land immediately.
+Environment=PYTHONUNBUFFERED=1
+Restart=always
+RestartSec=10
+# SIGTERM, not SIGKILL: gaze.py's handler recentres the gaze and releases the
+# camera cleanly. A killed process leaves the pipeline to time out, and the next
+# start can then fail to claim the device.
+KillSignal=SIGTERM
+TimeoutStopSec=15
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
